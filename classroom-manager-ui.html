@@ -1,0 +1,171 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="./classroom-manager.html">
+<link rel="import" href="../iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../paper-material/paper-material.html">
+<link rel="import" href="../paper-input/paper-input.html">
+<link rel="import" href="../paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../paper-item/paper-item.html">
+<link rel="import" href="../paper-menu/paper-menu.html">
+<link rel="import" href="../paper-button/paper-button.html">
+<link rel="import" href="../iron-icons/iron-icons.html">
+<link rel="import" href="../education-class/education-class.html">
+<link rel="import" href="../paper-fab/paper-fab.html">
+<link rel="import" href="../paper-input/paper-input.html">
+
+<dom-module id="classroom-manager-ui">
+  <style>
+    .container{
+      width: 500px;
+      height: 400px;
+      @apply(--layout-horizontal);
+    }
+    paper-material{
+      width: 50%;
+      padding: 5px 20px 20px 20px;
+    }
+    paper-dropdown-menu{
+      margin: -20px 0 0 -10px;
+    }
+    paper-button{
+      margin: 10px 0 0 -5px;
+    }
+    .item{
+      @apply(--layout-horizontal);
+      padding: 10px;
+    }
+    .item .flex{
+      padding-top: 10px;
+    }
+    paper-fab.red {
+      --paper-fab-background: var(--paper-red-500);
+      --paper-fab-keyboard-focus-background: var(--paper-red-900);
+    }
+    .list{
+      max-height: 300px;
+      overFlow-y: auto;
+    }
+  </style>
+  <template>
+    <education-class filter="{{filter}}" result="{{result}}"></education-class>
+    <classroom-manager host-id="{{hostId}}" edu-class="{{eduClass}}" edu-year="{{eduYear}}"
+    id="cm" on-classroom-manager-success="_handleClassroomSuccess"></classroom-manager>
+    
+    <span>{{hostID}}</span>
+    <div class="container">
+      <paper-material elevation="1">
+        <h2>จัดการห้องเรียน</h2>
+        <paper-dropdown-menu label="ระดับชั้น">
+          <paper-menu class="dropdown-content" on-iron-select="_handleLevelChanged">
+            <template is="dom-repeat" items="{{result}}">
+              <paper-item value="{{item.name}}">{{item.name}}</paper-item>
+            </template>
+          </paper-menu>
+        </paper-dropdown-menu>
+        <paper-dropdown-menu label="ปี" on-iron-select="_handleYearChanged">
+          <paper-menu class="dropdown-content">
+            <template is="dom-repeat" items="{{years}}">
+              <paper-item value="{{item.value}}">{{item.text}}</paper-item>
+            </template>
+          </paper-menu>
+        </paper-dropdown-menu>
+      </paper-material>
+      <paper-material id="details" elevation="1">
+        <paper-button raised on-click="_handleAddClick">เพิ่มห้อง</paper-button>
+        <div class="list">
+          <template is="dom-repeat" items="{{data}}">
+            <div class="item" value="{{item.id}}">
+              <div class="flex">ห้อง <span>{{item.RoomNumber}}</span></div>
+              <paper-fab class="red" mini icon="remove" value="{{item.id}}" on-click="_handleRemove"></paper-fab>
+            </div>
+          </template>
+        </div>
+      </paper-material>
+    </div>
+  </template>
+</dom-module>
+
+<script>
+  Polymer({
+    is: 'classroom-manager-ui',
+    properties: {
+      years: Array,
+      filter: Array,
+      hostId: String,
+      eduClass: String,
+      eduYear: String,
+      data: Array,
+      maxRoom: Number
+    },
+    ready: function() {
+      this.hostId = "001";
+      this._initYear();
+      this.filter = ["โรงเรียนอนุบาล","ประถมศึกษาตอนปลาย","ประถมศึกษาตอนต้น"];
+    },
+    echo: function(text){
+      return 'Hello ' + text;
+    },
+    _initYear: function(){
+      var current = new Date().getFullYear();
+      var tmp = [];
+      for(var i = -5; i < 1; i ++){
+        tmp.push({"value":(current+i),"text":(current+i)+543});
+      }
+      this.years = tmp;
+    },
+    _handleLevelChanged: function(e){
+      this.eduClass = e.target.selectedItem.value;
+    },
+    _handleYearChanged: function(e){
+      this.eduYear = e.target.selectedItem.value;
+    },
+    _handleClassroomSuccess: function(e){
+      if(e.detail.event == "getClassRoom"){
+        this.data = JSON.parse(JSON.stringify(e.detail.result));
+        this.maxRoom = 1;
+        for(var i = 0; i < this.data.length; i++){
+          if(this.maxRoom < this.data[i].RoomNumber){
+            this.maxRoom = this.data[i].RoomNumber;
+          }
+        }
+      }
+      else if(e.detail.event == "insert"){
+        var tmp = this.data.slice();
+        if(!tmp){
+          tmp = [];
+        }
+        this.maxRoom++;
+        tmp.push(JSON.parse(JSON.stringify(e.detail.result)));
+        this.data = tmp.slice();
+      }
+      else if(e.detail.event == "delete"){
+        var index = -1;
+        var tmp = this.data;
+        for(var i = 0; i < tmp.length; i++){
+          if(tmp[i].id == e.detail.result.id){
+            index = i; break;
+          }
+        }
+        tmp.splice(index, 1);
+        this.data = tmp.slice();
+      }
+    },
+    _handleAddClick: function(){
+      this.$.cm.insert((this.maxRoom + 1), this.eduClass, this.eduYear, this.hostId);
+    },
+    _handleRemove: function(e){
+      var target = this._findUntil(e.target, 'paper-fab', 5);
+      this.$.cm.delete(target.value);
+    },
+    _findUntil: function(element, expectTag, limitLoop){
+      for(var i = 0; i < limitLoop; i++){
+        if(element.localName == expectTag){
+          return element;
+        }
+        else{ 
+          element = element.parentNode;
+        }
+      }
+      return null;
+    }
+  });
+</script>

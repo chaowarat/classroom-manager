@@ -1,0 +1,145 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../iron-ajax/iron-ajax.html">
+
+<dom-module id="classroom-manager">
+    <template>
+      <iron-ajax id="checkExist" 
+        handle-as="json"
+        on-response="_handleCheckExist">
+      </iron-ajax>
+	    <iron-ajax id="getClassRoom" 
+        handle-as="json"
+        on-response="_handleGetClassRoom">
+      </iron-ajax>
+      <iron-ajax id="insertClassRoom" 
+        handle-as="json"
+        method="POST"
+        content-type="application/json"
+        on-response="_handleInsertClassRoom">
+      </iron-ajax>
+      <iron-ajax id="updateClassRoom" 
+        handle-as="json"
+        method="PUT"
+        content-type="application/json"
+        on-response="_handleUpdateClassRoom">
+      </iron-ajax>
+      <iron-ajax id="deleteClassRoom" 
+        handle-as="json"
+        method="DELETE"
+        content-type="application/json"
+        on-response="_handleDeleteClassRoom">
+      </iron-ajax>
+    </template>
+</dom-module>
+
+<script>
+  Polymer({
+    is: 'classroom-manager',
+    properties: {
+      RoomNumber: String,
+      eduClass: {
+        type: String,
+        observer: "getClassRoom"
+      },
+      eduYear: {
+        type: String,
+        observer: "getClassRoom"
+      },
+      hostId: {
+        type: String,
+        notify: true,
+        observer: "getClassRoom"
+      },
+      rooms: Array
+    },
+    ready: function() {
+
+    },
+    echo: function(text){
+      return 'Hello ' + text;
+    },
+    checkExist: function(RoomNumber, Class, Year, HostID){
+      var isExist = false;
+      if(this.rooms){
+        for(var i = 0; i < this.rooms.length; i++){
+          var room = this.rooms[i];
+          if(room["RoomNumber"] == RoomNumber && room["Class"] == Class &&
+            room["Year"] == Year && room["HostID"] == HostID){
+              isExist = true; break;
+          }
+        }
+      }
+      this.fire('classroom-manager-success', {"event":"checkExist","isExist":isExist});
+    },
+    getClassRoom: function(){
+      if(this.eduClass && this.eduYear && this.hostId){
+        var where = {"where":{"and":[{"Class":this.eduClass},{"Year":this.eduYear},{"HostID":this.hostId}]}};
+    		this.$.getClassRoom.url = "/api/Classrooms/?filter=" + encodeURI(JSON.stringify(where));		
+    		this.$.getClassRoom.generateRequest();
+      }
+    },
+    _handleGetClassRoom: function(){
+      var response = this.$.getClassRoom.lastResponse;
+      this.rooms = response;
+      this.fire('classroom-manager-success', {"event":"getClassRoom","result":response});
+    },
+    insert: function(RoomNumber, Class, Year, HostID){
+      var isExist = false;
+      if(this.rooms){
+        for(var i = 0; i < this.rooms.length; i++){
+          var room = this.rooms[i];
+          if(room["RoomNumber"] == RoomNumber && room["Class"] == Class &&
+            room["Year"] == Year && room["HostID"] == HostID){
+              isExist = true; break;
+          }
+        }
+      }
+      if(isExist){
+        this.fire('classroom-manager-success', {"event":"insert","result":room});
+      }
+      else{
+        var data = {
+  				"RoomNumber": RoomNumber,
+  				"Class": Class,
+  				"Year": Year,
+  				"HostID": HostID
+  			};
+  			if(!this.rooms){
+  			  this.rooms = [];
+  			}
+  			this.rooms.push(data);
+        this.$.insertClassRoom.url = "/api/Classrooms";
+  			this.$.insertClassRoom.body = JSON.stringify(data);		
+  			this.$.insertClassRoom.generateRequest();
+      }
+    },
+    _handleInsertClassRoom: function(){
+      var response = this.$.insertClassRoom.lastResponse;
+      this.fire('classroom-manager-success', {"event":"insert","result":response});
+    },
+    update: function(id, value){
+      if(value){
+        var body = JSON.stringify(value);
+        this.$.updateClassRoom.url = "/api/Classrooms/" + id;
+  	    this.$.updateClassRoom.body = body;
+  	    this.id = id;
+  	    this.$.updateClassRoom.generateRequest();
+      }
+    },
+    _handleUpdateClassRoom: function(){
+      var response = this.$.updateClassRoom.lastResponse;
+      this.fire('classroom-manager-success', {"event":"update","result":response});
+    },
+    delete: function(id){
+      if(id){
+        this.tmpID = id;
+        this.$.deleteClassRoom.url = "/api/Classrooms/" + id;
+  	    this.$.deleteClassRoom.generateRequest();
+      }
+    },
+    _handleDeleteClassRoom: function(){
+      var response = this.$.deleteClassRoom.lastResponse;
+      this.fire('classroom-manager-success', {"event":"delete","result":{"id":this.tmpID}});
+    }
+  });
+</script>
