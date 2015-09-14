@@ -136,6 +136,7 @@
         this.maxRoom++;
         tmp.push(JSON.parse(JSON.stringify(e.detail.result)));
         this.data = tmp.slice();
+		this.fire('classroom-manager-ui-success', {"event":"save","result":e});
       }
       else if(e.detail.event == "delete"){
         var index = -1;
