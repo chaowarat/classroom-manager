@@ -121,7 +121,7 @@
     _handleClassroomSuccess: function(e){
       if(e.detail.event == "getClassRoom"){
         this.data = JSON.parse(JSON.stringify(e.detail.result));
-        this.maxRoom = 1;
+        this.maxRoom = 0;
         for(var i = 0; i < this.data.length; i++){
           if(this.maxRoom < this.data[i].RoomNumber){
             this.maxRoom = this.data[i].RoomNumber;
